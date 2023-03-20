@@ -18,13 +18,13 @@ contract SSP{
     // 1 bnb = 10^9 gwei
     // minimum is 1000000 gwei or 10^15 wei
 
-    mapping(uint256 => mapping(uint256 => uint256)) GameRules;
+    mapping(uint8 => mapping(uint8 => uint8)) GameRules;
     uint256 public minBet = 10e14 wei;
 
 
     constructor() payable {
-        GameRules[0][0] = 0; // rock draw rock
-        GameRules[0][1] = 1; // rock doesn't beat paper
+        GameRules[0][0] = 1; // rock draw rock
+        GameRules[0][1] = 0; // rock doesn't beat paper
         GameRules[0][2] = 2; // rock beat scissor
 
         GameRules[1][0] = 2; // paper beat rock
@@ -37,17 +37,25 @@ contract SSP{
 
     }
 
-    event GamePlayed(address userAddress, uint8 result, uint256 _userChoice, uint256 _gameChoice);
+    uint256 private nonce = 0;
 
-    function playGame(uint256 _userChoice) payable public returns (bool){
+    function random() public returns (uint256) {
+        nonce++;
+        uint256 randomNumber = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, nonce))) % 3;
+        return randomNumber;
+    }
+
+    event GamePlayed(address userAddress, uint8 result, uint8 _userChoice, uint8 _gameChoice);
+
+    function playGame(uint8 _userChoice) payable public returns (bool){
 
         require(_userChoice<3, "You can choose only zero, one or two");
         require(address(this).balance >= msg.value*2, "Smart-contract run out of funds");
         require(msg.value >= minBet, "Please, increase your bet, min bet is 0.0001tBNB ");
 
-        uint256 _gamesChoice = block.timestamp%3;
-        uint256 result = GameRules[_userChoice][_gamesChoice];
-        
+        uint8 _gamesChoice = uint8(random());
+        uint8 result = GameRules[_userChoice][_gamesChoice];
+
         if (result == 2){
             payable(msg.sender).transfer(msg.value*2);
             emit GamePlayed(msg.sender, 2, _userChoice, _gamesChoice);
